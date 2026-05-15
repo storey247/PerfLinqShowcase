@@ -1,0 +1,14 @@
+# JetBrains IDEs
+.idea/
+
+# Build output
+bin/
+obj/
+
+# BenchmarkDotNet results
+BenchmarkDotNet.Artifacts/
+
+# .NET
+*.user
+*.suo
+*.vs/
