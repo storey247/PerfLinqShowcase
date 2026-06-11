@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(dotnet build:*)",
-      "Bash(dotnet run:*)"
+      "Bash(dotnet run:*)",
+      "Bash(open /Users/dave.storey/code/test/PerfLinqShowcase/PerfLinqShowcase/reports/Bench1_SimpleFilterTransform-charts.html)",
+      "Bash(open /Users/dave.storey/code/test/PerfLinqShowcase/PerfLinqShowcase/reports/Bench2_NestedSelectMany-charts.html /Users/dave.storey/code/test/PerfLinqShowcase/PerfLinqShowcase/reports/Bench3_ComplexChain-charts.html /Users/dave.storey/code/test/PerfLinqShowcase/PerfLinqShowcase/reports/Bench4_AnyAllPredicates-charts.html /Users/dave.storey/code/test/PerfLinqShowcase/PerfLinqShowcase/reports/Bench5_GroupByAggregation-charts.html)"
     ]
   }
 }

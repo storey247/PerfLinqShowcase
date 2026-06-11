@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bench2: Nested SelectMany — Performance Charts</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #e6edf3; margin: 0; padding: 2rem; }
+    h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #8b949e; font-size: 0.875rem; margin-bottom: 2rem; }
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+    .chart-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.5rem; }
+    h2 { font-size: 1rem; margin: 0 0 1rem; color: #58a6ff; }
+    canvas { max-height: 320px; }
+    .note { color: #8b949e; font-size: 0.8rem; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <h1>Bench2: Nested SelectMany</h1>
+  <p class="subtitle">BenchmarkDotNet · .NET 10 · Apple M3 Max · Arm64 RyuJIT AdvSIMD</p>
+
+  <div class="charts">
+    <div class="chart-card" style="grid-column: span 2">
+      <h2>Mean Execution Time (ns) — grouped by Scale</h2>
+      <canvas id="meanGrouped"></canvas>
+    </div>
+    <div class="chart-card">
+      <h2>Ratio to Baseline (Foreach nested loops → List = 1×)</h2>
+      <canvas id="ratio"></canvas>
+    </div>
+    <div class="chart-card">
+      <h2>Memory Allocated (KB)</h2>
+      <canvas id="alloc"></canvas>
+    </div>
+  </div>
+
+  <p class="note">Environment: .NET SDK 10.0.100 · macOS 26.4.1 (Darwin 25.4.0)</p>
+
+<script>
+const METHODS = [
+  'Foreach: nested loops → List (baseline)',
+  'Foreach: nested loops w/ filters',
+  'LINQ: 4× SelectMany → ToList',
+  'LINQ: 4× SelectMany + Where filters → ToList',
+  'LINQ: SelectMany projection → anon type',
+];
+const COLORS = ['#58a6ff', '#3fb950', '#f78166', '#d2a8ff', '#ffa657'];
+const scales = ['Small', 'Medium', 'Large'];
+const gridColor = '#30363d';
+const tickColor = '#8b949e';
+
+const means = {
+  'Foreach: nested loops → List (baseline)':    [2720.8,    86254.5,    856997.9],
+  'Foreach: nested loops w/ filters':           [923.5,     23187.3,    346157.0],
+  'LINQ: 4× SelectMany → ToList':              [3353.0,    62904.8,    469372.0],
+  'LINQ: 4× SelectMany + Where filters → ToList': [6084.3, 72891.9,   871016.6],
+  'LINQ: SelectMany projection → anon type':   [27066.8,   826353.4, 14723341.3],
+};
+const ratios = {
+  'Foreach: nested loops → List (baseline)':    [1.00, 1.00, 1.00],
+  'Foreach: nested loops w/ filters':           [0.34, 0.27, 0.40],
+  'LINQ: 4× SelectMany → ToList':              [1.23, 0.73, 0.55],
+  'LINQ: 4× SelectMany + Where filters → ToList': [2.24, 0.85, 1.02],
+  'LINQ: SelectMany projection → anon type':   [9.95, 9.58, 17.18],
+};
+const alloc = {
+  'Foreach: nested loops → List (baseline)':    [16.21,  256.33,  4096.77],
+  'Foreach: nested loops w/ filters':           [2.14,    64.26,   512.47],
+  'LINQ: 4× SelectMany → ToList':              [7.69,   110.73,  1330.88],
+  'LINQ: 4× SelectMany + Where filters → ToList': [5.4,  49.09,   405.33],
+  'LINQ: SelectMany projection → anon type':   [68.59, 1151.09, 13876.43],
+};
+
+function baseScales(yTitle) {
+  return {
+    x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+    y: { title: { display: true, text: yTitle, color: tickColor }, ticks: { color: tickColor }, grid: { color: gridColor } },
+  };
+}
+
+new Chart(document.getElementById('meanGrouped'), {
+  type: 'bar',
+  data: {
+    labels: scales,
+    datasets: METHODS.map((m, i) => ({
+      label: m, data: means[m],
+      backgroundColor: COLORS[i], borderColor: COLORS[i], borderRadius: 4,
+    })),
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: tickColor } } },
+    scales: baseScales('Mean (ns)'),
+  },
+});
+
+new Chart(document.getElementById('ratio'), {
+  type: 'bar',
+  data: {
+    labels: scales,
+    datasets: METHODS.map((m, i) => ({
+      label: m, data: ratios[m],
+      backgroundColor: COLORS[i], borderColor: COLORS[i], borderRadius: 4,
+    })),
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: tickColor } } },
+    scales: baseScales('Ratio (1× = baseline)'),
+  },
+});
+
+new Chart(document.getElementById('alloc'), {
+  type: 'bar',
+  data: {
+    labels: scales,
+    datasets: METHODS.map((m, i) => ({
+      label: m, data: alloc[m],
+      backgroundColor: COLORS[i], borderColor: COLORS[i], borderRadius: 4,
+    })),
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: tickColor } } },
+    scales: baseScales('Allocated (KB)'),
+  },
+});
+</script>
+</body>
+</html>

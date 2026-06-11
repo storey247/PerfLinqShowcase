@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bench3: Complex Chain — Performance Charts</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #e6edf3; margin: 0; padding: 2rem; }
+    h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #8b949e; font-size: 0.875rem; margin-bottom: 2rem; }
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+    .chart-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.5rem; }
+    h2 { font-size: 1rem; margin: 0 0 1rem; color: #58a6ff; }
+    canvas { max-height: 320px; }
+    .note { color: #8b949e; font-size: 0.8rem; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <h1>Bench3: Complex Chain</h1>
+  <p class="subtitle">BenchmarkDotNet · .NET 10 · Apple M3 Max · Arm64 RyuJIT AdvSIMD</p>
+
+  <div class="charts">
+    <div class="chart-card" style="grid-column: span 2">
+      <h2>Mean Execution Time (μs) — grouped by EmployeeCount</h2>
+      <canvas id="meanGrouped"></canvas>
+    </div>
+    <div class="chart-card">
+      <h2>Ratio to Baseline (Foreach single pass = 1×)</h2>
+      <canvas id="ratio"></canvas>
+    </div>
+    <div class="chart-card">
+      <h2>Memory Allocated (KB)</h2>
+      <canvas id="alloc"></canvas>
+    </div>
+  </div>
+
+  <p class="note">Environment: .NET SDK 10.0.100 · macOS 26.4.1 (Darwin 25.4.0)</p>
+
+<script>
+const METHODS = [
+  'Foreach: single pass (baseline)',
+  'LINQ: 4 sub-queries (re-enumerating Projects)',
+  'LINQ: Count() then Select() — double enumeration',
+];
+const COLORS = ['#58a6ff', '#f78166', '#d2a8ff'];
+const counts = ['100', '1,000', '10,000'];
+const gridColor = '#30363d';
+const tickColor = '#8b949e';
+
+const means = {
+  'Foreach: single pass (baseline)':              [55.71,    1022.08,  12979.05],
+  'LINQ: 4 sub-queries (re-enumerating Projects)':[212.54,   2552.28,  26316.18],
+  'LINQ: Count() then Select() — double enumeration': [214.08, 2535.23, 26321.99],
+};
+const ratios = {
+  'Foreach: single pass (baseline)':              [1.00, 1.00, 1.00],
+  'LINQ: 4 sub-queries (re-enumerating Projects)':[3.81, 2.50, 2.03],
+  'LINQ: Count() then Select() — double enumeration': [3.84, 2.48, 2.03],
+};
+const alloc = {
+  'Foreach: single pass (baseline)':              [6.34,   60.43,   609.37],
+  'LINQ: 4 sub-queries (re-enumerating Projects)':[84.08,  801.79,  8100.85],
+  'LINQ: Count() then Select() — double enumeration': [84.08, 801.78, 8100.81],
+};
+
+function baseScales(yTitle) {
+  return {
+    x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+    y: { title: { display: true, text: yTitle, color: tickColor }, ticks: { color: tickColor }, grid: { color: gridColor } },
+  };
+}
+
+new Chart(document.getElementById('meanGrouped'), {
+  type: 'bar',
+  data: {
+    labels: counts,
+    datasets: METHODS.map((m, i) => ({
+      label: m, data: means[m],
+      backgroundColor: COLORS[i], borderColor: COLORS[i], borderRadius: 4,
+    })),
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: tickColor } } },
+    scales: baseScales('Mean (μs)'),
+  },
+});
+
+new Chart(document.getElementById('ratio'), {
+  type: 'bar',
+  data: {
+    labels: counts,
+    datasets: METHODS.map((m, i) => ({
+      label: m, data: ratios[m],
+      backgroundColor: COLORS[i], borderColor: COLORS[i], borderRadius: 4,
+    })),
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: tickColor } } },
+    scales: baseScales('Ratio (1× = baseline)'),
+  },
+});
+
+new Chart(document.getElementById('alloc'), {
+  type: 'bar',
+  data: {
+    labels: counts,
+    datasets: METHODS.map((m, i) => ({
+      label: m, data: alloc[m],
+      backgroundColor: COLORS[i], borderColor: COLORS[i], borderRadius: 4,
+    })),
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: tickColor } } },
+    scales: baseScales('Allocated (KB)'),
+  },
+});
+</script>
+</body>
+</html>

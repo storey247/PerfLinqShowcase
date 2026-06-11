@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bench5: GroupBy Aggregation — Performance Charts</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #e6edf3; margin: 0; padding: 2rem; }
+    h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #8b949e; font-size: 0.875rem; margin-bottom: 2rem; }
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+    .chart-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.5rem; }
+    h2 { font-size: 1rem; margin: 0 0 1rem; color: #58a6ff; }
+    canvas { max-height: 320px; }
+    .note { color: #8b949e; font-size: 0.8rem; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <h1>Bench5: GroupBy Aggregation</h1>
+  <p class="subtitle">BenchmarkDotNet · .NET 10 · Apple M3 Max · Arm64 RyuJIT AdvSIMD</p>
+
+  <div class="charts">
+    <div class="chart-card" style="grid-column: span 2">
+      <h2>Mean Execution Time (μs) — grouped by Scale</h2>
+      <canvas id="meanGrouped"></canvas>
+    </div>
+    <div class="chart-card">
+      <h2>Ratio to Baseline (Foreach Dictionary = 1×)</h2>
+      <canvas id="ratio"></canvas>
+    </div>
+    <div class="chart-card">
+      <h2>Memory Allocated (KB)</h2>
+      <canvas id="alloc"></canvas>
+    </div>
+  </div>
+
+  <p class="note">Environment: .NET SDK 10.0.100 · macOS 26.4.1 (Darwin 25.4.0)</p>
+
+<script>
+const METHODS = [
+  'Foreach: Dictionary accumulation (baseline)',
+  'LINQ: SelectMany → Where → GroupBy → Select → OrderBy',
+  'LINQ: GroupBy + Count() before Select (triple enum)',
+];
+const COLORS = ['#58a6ff', '#3fb950', '#f78166'];
+const scales = ['Small', 'Medium', 'Large'];
+const gridColor = '#30363d';
+const tickColor = '#8b949e';
+
+const means = {
+  'Foreach: Dictionary accumulation (baseline)':               [4.167,   58.668,  1353.152],
+  'LINQ: SelectMany → Where → GroupBy → Select → OrderBy':    [22.711,  463.701, 5151.011],
+  'LINQ: GroupBy + Count() before Select (triple enum)':       [35.164,  419.282, 5387.445],
+};
+const ratios = {
+  'Foreach: Dictionary accumulation (baseline)':               [1.00, 1.00, 1.00],
+  'LINQ: SelectMany → Where → GroupBy → Select → OrderBy':    [5.45, 7.90, 3.81],
+  'LINQ: GroupBy + Count() before Select (triple enum)':       [8.44, 7.15, 3.98],
+};
+const alloc = {
+  'Foreach: Dictionary accumulation (baseline)':               [2.35,    3.15,    5.7],
+  'LINQ: SelectMany → Where → GroupBy → Select → OrderBy':    [27.28,  219.74, 1551.76],
+  'LINQ: GroupBy + Count() before Select (triple enum)':       [39.27,  300.58, 2030.2],
+};
+
+function baseScales(yTitle) {
+  return {
+    x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+    y: { title: { display: true, text: yTitle, color: tickColor }, ticks: { color: tickColor }, grid: { color: gridColor } },
+  };
+}
+
+new Chart(document.getElementById('meanGrouped'), {
+  type: 'bar',
+  data: {
+    labels: scales,
+    datasets: METHODS.map((m, i) => ({
+      label: m, data: means[m],
+      backgroundColor: COLORS[i], borderColor: COLORS[i], borderRadius: 4,
+    })),
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: tickColor } } },
+    scales: baseScales('Mean (μs)'),
+  },
+});
+
+new Chart(document.getElementById('ratio'), {
+  type: 'bar',
+  data: {
+    labels: scales,
+    datasets: METHODS.map((m, i) => ({
+      label: m, data: ratios[m],
+      backgroundColor: COLORS[i], borderColor: COLORS[i], borderRadius: 4,
+    })),
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: tickColor } } },
+    scales: baseScales('Ratio (1× = baseline)'),
+  },
+});
+
+new Chart(document.getElementById('alloc'), {
+  type: 'bar',
+  data: {
+    labels: scales,
+    datasets: METHODS.map((m, i) => ({
+      label: m, data: alloc[m],
+      backgroundColor: COLORS[i], borderColor: COLORS[i], borderRadius: 4,
+    })),
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: tickColor } } },
+    scales: baseScales('Allocated (KB)'),
+  },
+});
+</script>
+</body>
+</html>

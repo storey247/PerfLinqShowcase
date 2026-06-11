@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bench1: Simple Filter Transform — Performance Charts</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0d1117; color: #e6edf3; margin: 0; padding: 2rem; }
+    h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #8b949e; font-size: 0.875rem; margin-bottom: 2rem; }
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+    .chart-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.5rem; }
+    h2 { font-size: 1rem; margin: 0 0 1rem; color: #58a6ff; }
+    canvas { max-height: 320px; }
+    .note { color: #8b949e; font-size: 0.8rem; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <h1>Bench1: Simple Filter Transform</h1>
+  <p class="subtitle">BenchmarkDotNet · .NET 10 · Apple M3 Max · Arm64 RyuJIT AdvSIMD</p>
+
+  <div class="charts">
+    <div class="chart-card" style="grid-column: span 2">
+      <h2>Mean Execution Time (μs) — grouped by EmployeeCount</h2>
+      <canvas id="meanGrouped"></canvas>
+    </div>
+    <div class="chart-card">
+      <h2>Ratio to Baseline (Foreach single-pass = 1×)</h2>
+      <canvas id="ratio"></canvas>
+    </div>
+    <div class="chart-card">
+      <h2>Memory Allocated (bytes)</h2>
+      <canvas id="alloc"></canvas>
+    </div>
+  </div>
+
+  <p class="note">Environment: .NET SDK 10.0.100 · macOS 26.4.1 (Darwin 25.4.0)</p>
+
+<script>
+const METHODS = [
+  'Foreach (baseline)',
+  'LINQ: Where → Select → Sum',
+  'LINQ: double enumeration',
+  'LINQ: unnecessary materialisation',
+];
+
+const COLORS = ['#58a6ff', '#3fb950', '#f78166', '#d2a8ff'];
+const COLORS_ALPHA = ['rgba(88,166,255,0.15)', 'rgba(63,185,80,0.15)', 'rgba(247,129,102,0.15)', 'rgba(210,168,255,0.15)'];
+
+// Raw data [500, 5000, 50000]
+const means = {
+  'Foreach (baseline)':            [1.329,   15.370,  212.399],
+  'LINQ: Where → Select → Sum':   [2.543,   34.833,  533.747],
+  'LINQ: double enumeration':      [3.973,   50.347,  787.324],
+  'LINQ: unnecessary materialisation': [4.477, 57.489, 788.703],
+};
+const stddev = {
+  'Foreach (baseline)':            [0.0033,  0.0546,  4.0739],
+  'LINQ: Where → Select → Sum':   [0.0081,  0.2271, 18.0459],
+  'LINQ: double enumeration':      [0.0234,  0.2344, 11.9768],
+  'LINQ: unnecessary materialisation': [0.0195, 0.4179, 15.2167],
+};
+const alloc = {
+  'Foreach (baseline)':            [0,    0,      0],
+  'LINQ: Where → Select → Sum':   [160,  160,    160],
+  'LINQ: double enumeration':      [72,   72,     72],
+  'LINQ: unnecessary materialisation': [3008, 29416, 294491],
+};
+const ratios = {
+  // per employee count: [500, 5000, 50000]
+  'Foreach (baseline)':            [1.00, 1.00, 1.00],
+  'LINQ: Where → Select → Sum':   [1.91, 2.27, 2.51],
+  'LINQ: double enumeration':      [2.99, 3.28, 3.71],
+  'LINQ: unnecessary materialisation': [3.37, 3.74, 3.72],
+};
+
+const employeeCounts = ['500', '5,000', '50,000'];
+const gridColor = '#30363d';
+const tickColor = '#8b949e';
+
+function baseScales(yTitle) {
+  return {
+    x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+    y: { title: { display: true, text: yTitle, color: tickColor }, ticks: { color: tickColor }, grid: { color: gridColor } },
+  };
+}
+
+// 1. Grouped bar — mean by EmployeeCount
+new Chart(document.getElementById('meanGrouped'), {
+  type: 'bar',
+  data: {
+    labels: employeeCounts,
+    datasets: METHODS.map((m, i) => ({
+      label: m,
+      data: means[m],
+      backgroundColor: COLORS[i],
+      borderColor: COLORS[i],
+      borderRadius: 4,
+    })),
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: tickColor } } },
+    scales: baseScales('Mean (μs)'),
+  },
+});
+
+// 2. Ratio bar — grouped by EmployeeCount
+new Chart(document.getElementById('ratio'), {
+  type: 'bar',
+  data: {
+    labels: employeeCounts,
+    datasets: METHODS.map((m, i) => ({
+      label: m,
+      data: ratios[m],
+      backgroundColor: COLORS[i],
+      borderColor: COLORS[i],
+      borderRadius: 4,
+    })),
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { labels: { color: tickColor } },
+      annotation: {},
+    },
+    scales: baseScales('Ratio (1× = baseline)'),
+  },
+});
+
+// 3. Allocation — log scale makes the 0-value methods visible
+new Chart(document.getElementById('alloc'), {
+  type: 'bar',
+  data: {
+    labels: employeeCounts,
+    datasets: METHODS.map((m, i) => ({
+      label: m,
+      data: alloc[m],
+      backgroundColor: COLORS[i],
+      borderColor: COLORS[i],
+      borderRadius: 4,
+    })),
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { labels: { color: tickColor } } },
+    scales: {
+      ...baseScales('Allocated (bytes)'),
+    },
+  },
+});
+</script>
+</body>
+</html>
